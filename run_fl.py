@@ -5,9 +5,9 @@ users = read_users('data/foursquare/tky-users.csv')
 
 ks = range(1, 11, 3)
 
-for k in ks:
-    radius = calc_kernel_radius(items, users)
-    print(radius)
+radius = calc_kernel_radius(items, users)
+print(radius)
 
+for k in ks:
     sol, benefits, time = greedy_fl(items, users, k, radius)
     print(sol, sum(benefits), time)

@@ -1,7 +1,7 @@
 from max_cover.algo_mc import greedy_mc, read_items, read_users
 
-items = read_items('data/wikibooks/items-jp.csv')
-users = read_users('data/wikibooks/users-jp.csv')
+items = read_items('data/wikibooks/items-srb.csv')
+users = read_users('data/wikibooks/users-srb.csv')
 
 ks = range(1, 11, 3)
 
