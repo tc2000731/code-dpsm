@@ -76,8 +76,6 @@ class Handler:
         try:
             with open(self.save_path, 'r', newline='') as csvfile:
                 print('file exists')
-        # if desired file doesn't exist, create it with the write ('w') or
-        # append 'a' mode
         except:
             with open(self.save_path, 'w', newline='') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=self.res_fields)
@@ -100,11 +98,8 @@ class Handler:
         self.start_work()
 
     def start_work(self):
-        # print("nb")
         if "epsilon" not in self.args:
             self.args["epsilon"] = 1
-        if self.args["algorithm"] == "FDP_SVT":
-            self.get_start_value()
         if self.existed(self.args):
             print("ARGS EXISTED. STOP RUNNING.")
             return
@@ -194,8 +189,6 @@ class Handler:
             func = CDP
         elif args["algorithm"] == "FDP_Lazy":
             func = FDP_Lazy
-        elif args["algorithm"] == "FDP_SVT":
-            func = FDP_SVT
         print(args)
         if self.existed(args):
             args["Exist"] = True
@@ -232,8 +225,6 @@ class Handler:
             k = args["k"]
         elif args["algorithm"] == "FDP":
             k = args["k"]*args["m"]
-        elif args["algorithm"] == "FDP_SVT":
-            k = args["k"]*args["s"]
         elif args["algorithm"] == "FDP_Lazy":
             k = args["m"]+(args["k"]-1)*args["cutoff"]
 
@@ -272,17 +263,3 @@ class Handler:
             sigma = math.sqrt(a/b*(2*math.sqrt(d*d-d)+2*d-1)/2)
             args["sigma"] = sigma
             print("sigma:", sigma)
-        elif args["algorithm"] == "FDP_SVT":
-
-            m = args["m"]
-            cut = args["cutoff"]
-            a = (cut+1)/2
-            b = math.sqrt(
-                (1+cut)*(math.log(1/args["delta_0"])+math.log(cut)+self.logjc(m)-self.logjc(cut)-self.logjc(m-cut)))
-            c = -args["epsilon_0"]
-            delta = b*b-4*a*c
-
-            sigma = (-b+math.sqrt(delta))/(a+a)
-            sigma = 1/(sigma)
-            args["sigma"] = sigma
-            print("sigma", sigma)

@@ -5,7 +5,7 @@ import collections
 def filter_0(args):
     if args["dataset"] == "DBLP" and False:
         return 0
-    if args["algorithm"] != "FDP_SVT" and False:  # True/ False
+    if args["algorithm"] != "FDP" and False:  # True/ False
         return 0
     if args["select_method"] != "noisy_max" and False:
         return 0
@@ -27,8 +27,8 @@ def filter_1(args):
 
 
 def getkey(row):
-    return (row["dataset"], row["algorithm"], row["l"], row["n"], row["m"], row["k"], row["epsilon"], row["select_method"],
-            row["noise"], row["cutoff"], row["s"], row["beta"], row["radius_multiplier"], row["gamma"])
+    return (row["dataset"], row["algorithm"], row["l"], row["n"], row["m"], row["k"], row["epsilon"],
+            row["select_method"], row["noise"], row["cutoff"], row["radius_multiplier"], row["gamma"])
 
 
 def eq(a, b):
