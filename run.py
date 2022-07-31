@@ -35,7 +35,7 @@ def get_dataset_info(args):
 
 
 if __name__ == "__main__":
-    H = Handler(MaxP=35, save_path="res.csv")
+    H = Handler(MaxP=5, save_path="res.csv")
 
     # parameter tuning
     for dataset in ["DBLP", "flickr", "uber", "foursquare"]:

@@ -31,13 +31,13 @@ H = Handler(MaxP=35, save_path="res.csv")
 ```
 `MaxP=35` means the maximum number of parallel computing processes
 
-`save_path="res.csv"` means experiment results will be saved `res.csv` 
+`save_path="res.csv"` means experiment results will be saved in `res.csv` 
 
 
 
 ---
 
-To run the algorithm in other dataset/parameters, do:
+To run the algorithm with other dataset/parameters, do:
 
 ### 1. 
 ...

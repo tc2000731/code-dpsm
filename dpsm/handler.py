@@ -8,7 +8,7 @@ import pickle
 import time as tm
 import multiprocessing as mp
 from dpsm.Client import Client, dotProduct, Fast_Client
-from dpsm.FDP_Server import FDP, calc_kernel_radius, FDP_Lazy, FDP_SVT
+from dpsm.FDP_Server import FDP, calc_kernel_radius, FDP_Lazy
 from dpsm.CDP_Server import CDP
 
 
@@ -39,24 +39,18 @@ def get_args_dict(dataset, algorithm, k, l, gamma, seed=0, epsilon=1, n=None, m=
         dic["select_method"] = "greedy"
     if algorithm == "CDP":
         if select_method is None:
-            print("\033[0;31mERROR: Missing parameter: select_method.\033[0m")
-            exit()
+            raise ValueError("Error: Missing parameter: select_method.")
         dic["select_method"] = select_method
     if algorithm == "FDP":
         if noise is None:
-            print("\033[0;31mERROR: Missing parameter: noise.\033[0m")
-            exit(1)
+            raise ValueError("Error: Missing parameter: noise.")
         dic["noise"] = noise
-    if algorithm == "FDP_Lazy" or algorithm == "FDP_SVT":
+    if algorithm == "FDP_Lazy":
         if noise is None:
-            print("\033[0;31mERROR: Missing parameter: noise.\033[0m")
-            exit(1)
+            raise ValueError("Error: Missing parameter: noise.")
         if cutoff is None:
-            print("\033[0;31mERROR: Missing parameter: cutoff.\033[0m")
-            exit(1)
+            raise ValueError("Error: Missing parameter: cutoff.")
         dic["noise"] = noise
-        dic["cutoff"] = cutoff
-    if algorithm == "FDP_SVT":
         dic["cutoff"] = cutoff
     return dic
 
@@ -69,14 +63,14 @@ class Handler:
         self.save_path = save_path
         self. res_fields = res_fields
         if res_fields is None:
-            self.res_fields = ["dataset", "algorithm", "utility_func", "l", "seed", "n", "m", "k", "gamma", "epsilon", "delta",
-                               "epsilon_0", "delta_0", "sigma", "radius", "select_method", "noise", "cutoff", "s", "beta",
-                               "start_value", "ignore_value", "radius_multiplier", "eta", "sol", "result", "time"]
+            self.res_fields = ["dataset", "algorithm", "utility_func", "l", "seed", "n", "m", "k", "gamma", "epsilon",
+                               "delta","epsilon_0", "delta_0", "sigma", "radius", "select_method", "noise",
+                               "cutoff", "sol", "result", "time"]
         self.args = dict()
         self.check_fileds = check_fields
         if check_fields is None:
             self.check_fileds = ["dataset", "algorithm", "l", "seed", "n", "m", "k", "gamma", "epsilon",
-                                 "select_method", "noise", "cutoff", "s", "beta", "start_value", "ignore_value", "eta"]
+                                 "select_method", "noise", "cutoff"]
         self.exist_args = set()
 
         try:

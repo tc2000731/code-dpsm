@@ -21,19 +21,6 @@ def exp_mech(data, epsilon, sol):
             rnd -= p[item_id]
 
 
-def report_noisy_max(data, epsilon, sol):
-    max_id = None
-    max_val = 0
-    for item_id in data.keys():
-        if item_id in sol:
-            continue
-        tmp = data[item_id] + np.random.laplace(0, 1 / epsilon)
-        if max_id is None or max_val < tmp:
-            max_id = item_id
-            max_val = tmp
-    return max_id
-
-
 def permutation_flip(data, epsilon, sol):
     mq = 0
     for v in data.values():
@@ -73,9 +60,7 @@ def CDP(items, args, clients):
                 for k, v in tmp.items():
                     gains[k] += v
         # print("gains['911']",gains['911'])
-        if args["select_method"] == "noisy_max":
-            output = report_noisy_max(gains, args["epsilon_0"], sol)
-        elif args["select_method"] == "permutation":
+        if args["select_method"] == "permutation":
             output = permutation_flip(gains, args["epsilon_0"], sol)
         elif args["select_method"] == "exp_mech":
             output = exp_mech(gains, args["epsilon_0"], sol)
@@ -89,8 +74,7 @@ def CDP(items, args, clients):
                 if output is None or gains[output] < gains[key]:
                     output = key
         else:
-            print("ERROR: select_method set to exp_mech")
-            output = exp_mech(gains, args["epsilon_0"], sol)
+            raise ValueError("ERROR: Cannot resolve parameter: select_method.")
 
         sol.add(output)
 

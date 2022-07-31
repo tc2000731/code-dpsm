@@ -80,6 +80,8 @@ def FDP_Lazy(items, args, clients):
                         tmp += np.random.laplace(0, 1/args["epsilon_0"])
                     elif args["noise"] == "gaussian":
                         tmp += np.random.normal(0, args["sigma"])
+                    else:
+                        raise ValueError("ERROR: Cannot resolve parameter: noise.")
                     val += tmp
                 pq.put((-val, item_id))
                 gains[item_id] = val
@@ -118,52 +120,3 @@ def FDP_Lazy(items, args, clients):
     stop_time = time.process_time_ns()
     return sol, (stop_time - start_time)/1e9
 
-
-def GSVT(data, queries, sigma, cufoff, threshold):
-    t = threshold + np.random.normal(0, sigma)
-    s = set()
-    cnt = 0
-    random.shuffle(queries)
-    for item_id in queries:
-        if data[item_id]+np.random.normal(0, 2*sigma) >= t:
-            s.add(item_id)
-            cnt += 1
-        if cnt >= cufoff:
-            break
-    return s
-
-
-def FDP_SVT(items, args, clients):
-    start_time = time.process_time_ns()
-    sol = set()
-    V = set(items.keys())
-    for kk in range(args["k"]):
-        q = dict((item_id, 0) for item_id in items.keys())
-        for j in clients:
-            Vj = V.copy()
-            for ss in range(args["s"]):
-                data = j.calc_u()
-                t = args["start_value"][kk] * \
-                    ((1 - args["beta"]) ** ss) * len(j.users)
-                S = GSVT(data, list(Vj), args["sigma"],
-                         args["cutoff"], t * args["gamma"])
-                for v in S:
-                    q[v] += t
-                    Vj.remove(v)
-
-        max_id = None
-
-        for v in q.keys():
-            if v in sol:
-                continue
-            if max_id is None or q[max_id] < q[v]:
-               # print(v)
-                max_id = v
-
-        V.remove(max_id)
-        sol.add(max_id)
-        for client in clients:
-            client.update_benefits(max_id)
-
-    stop_time = time.process_time_ns()
-    return sol, (stop_time - start_time)/1e9
