@@ -37,13 +37,12 @@ def get_dataset_info(args):
 if __name__ == "__main__":
     H = Handler(MaxP=35, save_path="res.csv")
 
-    # parameter
+    # parameter tuning
     for dataset in ["DBLP", "flickr", "uber", "foursquare"]:
         args = get_args_dict(dataset, "Greedy", 10, 20, 1)
         get_dataset_info(args)
         H.start(args)
 
-        # [1, 1/2, 1/4, 1/8, 1/16, 1/32]:
         for gamma in [1, 1/2, 1/4, 1/8, 1/16, 1/32, 1/64, 1/128, 1/256, 1/512, 1/1024]:
             for alg in ["CDP", "FDP"]:
                 if alg == "CDP":
