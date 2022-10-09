@@ -7,9 +7,11 @@ import csv
 import pickle
 import time as tm
 import multiprocessing as mp
+import datetime
 from dpsm.Client import Client, dotProduct, Fast_Client
-from dpsm.FDP_Server import FDP, calc_kernel_radius, FDP_Lazy
+from dpsm.FDP_Server import FDP, calc_kernel_radius, FDP_Lazy,FDP_PF
 from dpsm.CDP_Server import CDP
+
 
 
 def read_dict(input_path: str):
@@ -18,7 +20,7 @@ def read_dict(input_path: str):
         return dic
 
 
-def get_args_dict(dataset, algorithm, k, l, gamma, seed=0, epsilon=1, n=None, m=None, select_method=None, noise=None, cutoff=None, s=None, beta=None, save=True, fast=False):
+def get_args_dict(dataset, algorithm, k, l, gamma, seed=0, epsilon=1, n=None, m=None, select_method=None, noise=None, cutoff=None, s=None, beta=None, save=True, fast=False,e0_ratio=None):
     dic = dict()
     dic["dataset"] = dataset
     dic["algorithm"] = algorithm
@@ -52,6 +54,13 @@ def get_args_dict(dataset, algorithm, k, l, gamma, seed=0, epsilon=1, n=None, m=
             raise ValueError("Error: Missing parameter: cutoff.")
         dic["noise"] = noise
         dic["cutoff"] = cutoff
+    if algorithm == "FDP_PF":
+        if cutoff is None:
+            raise ValueError("Error: Missing parameter: cutoff.")
+        if e0_ratio is None:
+            raise ValueError("Error: Missing parameter: e0_ratio.")
+        dic["cutoff"] = cutoff
+        dic["e0_ratio"]=e0_ratio
     return dic
 
 
@@ -61,15 +70,15 @@ class Handler:
         self.Pcnt = 0
         self.q = mp.Queue()
         self.save_path = save_path
-        self. res_fields = res_fields
+        self.res_fields = res_fields
         if res_fields is None:
             self.res_fields = ["dataset", "algorithm", "utility_func", "l", "seed", "n", "m", "k", "gamma", "epsilon",
-                               "delta","epsilon_0", "delta_0", "sigma", "radius", "select_method", "noise",
-                               "cutoff", "sol", "result", "time"]
+                               "delta","epsilon_0", "delta_0", "sigma","epsilon_1","epsilon_2", "radius", "select_method", "noise","e0_ratio",
+                               "cutoff", "sol", "result", "time","communication_cost"]
         self.args = dict()
         self.check_fileds = check_fields
         if check_fields is None:
-            self.check_fileds = ["dataset", "algorithm", "l", "seed", "n", "m", "k", "gamma", "epsilon",
+            self.check_fileds = ["dataset", "algorithm", "l", "seed", "n", "m", "k", "gamma", "epsilon","e0_ratio",
                                  "select_method", "noise", "cutoff"]
         self.exist_args = set()
 
@@ -119,7 +128,7 @@ class Handler:
         print(str(nargs))
         return str(nargs) in self.exist_args
 
-    def wait(self, minp=0):
+    def wait(self, minp=1):
 
         while self.Pcnt >= minp:
             a = self.q.get()
@@ -128,13 +137,12 @@ class Handler:
                 continue
             if a["save"]:
                 with open(self.save_path, "a", newline='') as f:
-                    fileds = ["dataset", "algorithm", "utility_func", "l", "seed", "n", "m", "k", "gamma", "epsilon", "delta",
-                              "epsilon_0", "delta_0", "sigma", "radius", "select_method", "noise", "cutoff", "s", "beta",
-                              "start_value", "ignore_value", "radius_multiplier", "eta", "sol", "result", "time"]
+                    fileds = self.res_fields
                     w = csv.DictWriter(
                         f, extrasaction="ignore", fieldnames=fileds)
                     w.writerow(a)
             self.Pcnt -= 1
+            print(self.Pcnt," process(es) left.")
 
     def work(self, args, q):
         random.seed(1)
@@ -178,7 +186,7 @@ class Handler:
             else:
                 clients.append(Client(users_data[i], items, args))
         if self.args["algorithm"] != "Greedy":
-            self.calc_e0(args)
+            self.calc_parameters(args)
 
         func = None
         if args["algorithm"] == "Greedy":
@@ -189,13 +197,15 @@ class Handler:
             func = CDP
         elif args["algorithm"] == "FDP_Lazy":
             func = FDP_Lazy
+        elif args["algorithm"] == "FDP_PF":
+            func=FDP_PF
         print(args)
         if self.existed(args):
             args["Exist"] = True
             print("ARGS ALREADY EXIST. STOP RUNNING.")
             q.put(args)
             return
-        sol, time = func(items, args, clients)
+        sol, time,comm_cost = func(items, args, clients)
         benefits = 0
         if args["fast"] is False:
             for client in clients:
@@ -206,7 +216,8 @@ class Handler:
         args["sol"] = sol
         args["result"] = benefits
         args["time"] = time
-        print("done:", args)
+        args["communication_cost"]=comm_cost
+        print(str(datetime.datetime.now())," done:", args)
         q.put(args)
 
     def F(self, t, a, b, c):
@@ -218,7 +229,7 @@ class Handler:
             s += math.log(i+1)
         return s
 
-    def calc_e0(self, args):
+    def calc_parameters(self, args):
 
         e = args["epsilon"]
         if args["algorithm"] == "CDP":
@@ -227,6 +238,8 @@ class Handler:
             k = args["k"]*args["m"]
         elif args["algorithm"] == "FDP_Lazy":
             k = args["m"]+(args["k"]-1)*args["cutoff"]
+        elif args["algorithm"] == "FDP_PF":
+            k= args["k"]*args["cutoff"]
 
         d = args["delta"]
         gamma = args["gamma"]
@@ -252,6 +265,10 @@ class Handler:
             args["delta_0"] = adv_d/k
 
         args["delta_0"] /= gamma
+        if args["algorithm"]== "FDP_PF":
+            args["epsilon_1"] = math.log(1 + (math.exp(args["epsilon_0"]*args["e0_ratio"]) - 1) / gamma)
+            args["epsilon_2"] =math.log(1 + (math.exp(args["epsilon_0"]*(1-args["e0_ratio"])) - 1) / gamma) 
+            
         args["epsilon_0"] = math.log(
             1 + (math.exp(args["epsilon_0"]) - 1) / gamma)
         if args["algorithm"] == "FDP" or args["algorithm"] == "FDP_Lazy":

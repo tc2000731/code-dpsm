@@ -28,7 +28,7 @@ def filter_1(args):
 
 def getkey(row):
     return (row["dataset"], row["algorithm"], row["l"], row["n"], row["m"], row["k"], row["epsilon"],
-            row["select_method"], row["noise"], row["cutoff"], row["radius_multiplier"], row["gamma"])
+            row["select_method"], row["noise"], row["e0_ratio"], row["cutoff"], row["gamma"])
 
 
 def eq(a, b):
@@ -41,74 +41,85 @@ def eq(a, b):
     return True
 
 
-with open("res.csv", 'r') as f:
-    # fields = ["dataset", "algorithm", "utility_func", "l", "seed", "n", "m", "k", "gamma", "epsilon", "delta",
-    #           "epsilon_0", "delta_0", "sigma", "radius", "select_method", "noise", "cutoff", "s", "beta",
-    #           "start_value", "ignore_value", "radius_multiplier", "eta", "sol", "result", "time"]
-    # writer = csv.DictWriter(f, fieldnames=fields, extrasaction='ignore')
-    # writer.writeheader()
-    r = csv.DictReader(f)
-    lines = []
-    for row in r:
-        if filter_0(row):
-            lines.append(row)
-            # print(row)
-lines = sorted(lines, key=lambda x: (x["dataset"], x["m"], x["algorithm"],
-                                     x["select_method"],
-                                     x["epsilon"], x["noise"], x["k"], x["gamma"],
-                                     int(0 if x["cutoff"] == '' else x["cutoff"])))
-last_appear = dict()
-total = collections.defaultdict(float)
-total_time = collections.defaultdict(float)
-cnt = collections.defaultdict(int)
-variance = collections.defaultdict(float)
-max_result = collections.defaultdict(float)
-min_result = dict((getkey(row), 1e9) for row in lines)
+def work(suf):
 
+    with open("res"+suf+".csv", 'r') as f:
+        # fields = ["dataset", "algorithm", "utility_func", "l", "seed", "n", "m", "k", "gamma", "epsilon", "delta",
+        #           "epsilon_0", "delta_0", "sigma", "radius", "select_method", "noise", "cutoff", "s", "beta",
+        #           "start_value", "ignore_value", "radius_multiplier", "eta", "sol", "result", "time"]
+        # writer = csv.DictWriter(f, fieldnames=fields, extrasaction='ignore')
+        # writer.writeheader()
+        r = csv.DictReader(f)
+        lines = []
+        for row in r:
+            if filter_0(row):
+                lines.append(row)
+                # print(row)
+    lines = sorted(lines, key=lambda x: (x["dataset"], x["m"], x["algorithm"],
+                                         x["select_method"],
+                                         x["epsilon"], x["noise"], x["k"], x["gamma"], x["e0_ratio"],
+                                         int(0 if x["cutoff"] == '' else x["cutoff"])))
+    last_appear = dict()
+    total = collections.defaultdict(float)
+    total_time = collections.defaultdict(float)
+    cnt = collections.defaultdict(int)
+    variance = collections.defaultdict(float)
+    max_result = collections.defaultdict(float)
+    min_result = dict((getkey(row), 1e9) for row in lines)
+    total_comm = collections.defaultdict(float)
 
-for row in lines:
-    total[getkey(row)] += float(row["result"])
-    total_time[getkey(row)] += float(row["time"])
-    cnt[getkey(row)] += 1
-    # if filter_1(row):
-    #     print(row)
+    for row in lines:
+        total[getkey(row)] += float(row["result"])
+        total_time[getkey(row)] += float(row["time"])
+        total_comm[getkey(row)] += float(row["communication_cost"])
+        cnt[getkey(row)] += 1
+        # if filter_1(row):
+        #     print(row)
 
-for row in lines:
-    key = getkey(row)
-    variance[key] += (float(row["result"])-(total[key]/cnt[key]))**2
-    max_result[key] = max(max_result[key], float(row["result"]))
-    min_result[key] = min(min_result[key], float(row["result"]))
-    last_appear[key] = row
+    for row in lines:
+        key = getkey(row)
+        variance[key] += (float(row["result"])-(total[key]/cnt[key]))**2
+        max_result[key] = max(max_result[key], float(row["result"]))
+        min_result[key] = min(min_result[key], float(row["result"]))
 
-for key in total.keys():
-    print(key, "cnt:", cnt[key], "average:", total[key]/cnt[key],
-          "time:", total_time[key]/cnt[key])
+        last_appear[key] = row
 
-# for row in lines:
-#     key = getkey(row)
-#     if eq(key, ('ml1m', 'FDP', '*', '*', '*', '*', '*', '*', '*', '*')):
-#         print(key, row["result"], row["sol"], row["sigma"])
-dic_list = []
-for key in total.keys():
-    dic = dict()
-    tmp = ["dataset", "algorithm", "utility_func", "l", "n", "m", "k", "gamma", "epsilon", "delta",
-           "epsilon_0", "delta_0", "sigma", "radius", "radius_multiplier", "select_method", "noise", "cutoff", "s", "beta"]
-    for kk in tmp:
-        dic[kk] = last_appear[key][kk]
-    dic["number of runs"] = cnt[key]
-    dic["result"] = total[key]/cnt[key]
-    dic["variance"] = variance[key]/cnt[key]
-    dic["time"] = total_time[key]/cnt[key]
-    dic["max_result"] = max_result[key]
-    dic["min_result"] = min_result[key]
-    dic_list.append(dic)
+    for key in total.keys():
+        print(key, "cnt:", cnt[key], "average:", total[key]/cnt[key],
+              "time:", total_time[key]/cnt[key])
 
+    # for row in lines:
+    #     key = getkey(row)
+    #     if eq(key, ('ml1m', 'FDP', '*', '*', '*', '*', '*', '*', '*', '*')):
+    #         print(key, row["result"], row["sol"], row["sigma"])
+    dic_list = []
+    for key in total.keys():
+        dic = dict()
+        tmp = ["dataset", "algorithm", "utility_func", "l", "n", "m", "k", "gamma", "epsilon", "delta",
+               "epsilon_0", "delta_0", "sigma", "radius", "select_method", "noise", "e0_ratio", "cutoff"]
+        for kk in tmp:
+            dic[kk] = last_appear[key][kk]
+        dic["number of runs"] = cnt[key]
+        dic["result"] = total[key]/cnt[key]
+        dic["variance"] = variance[key]/cnt[key]
+        dic["time"] = total_time[key]/cnt[key]
+        dic["max_result"] = max_result[key]
+        dic["min_result"] = min_result[key]
+        dic["comm_cost"] = total_comm[key]/cnt[key]
+        dic_list.append(dic)
 
-with open("out.csv", "w") as f:
-    fileds = ["dataset", "algorithm", "utility_func", "l", "n", "m", "k", "gamma", "epsilon", "delta",
-              "epsilon_0", "delta_0", "sigma", "radius", "radius_multiplier", "select_method", "noise", "cutoff", "s", "beta", "number of runs",
-              "result", "variance", "time", "max_result", "min_result"]
-    writer = csv.DictWriter(f, extrasaction="ignore", fieldnames=fileds)
-    writer.writeheader()
-    for row in dic_list:
-        writer.writerow(row)
+    with open("out"+suf+".csv", "w") as f:
+        fileds = ["dataset", "algorithm", "utility_func", "l", "n", "m", "k", "gamma", "epsilon", "delta",
+                  "epsilon_0", "delta_0", "sigma", "radius", "select_method", "noise", "e0_ratio", "cutoff", "number of runs",
+                  "result", "variance",   "time", "max_result", "min_result", "comm_cost"]
+        writer = csv.DictWriter(f, extrasaction="ignore", fieldnames=fileds)
+        writer.writeheader()
+        for row in dic_list:
+            writer.writerow(row)
+
+# work("_eps")
+# work("_k")
+# work("_l")
+# work("_gamma")
+# work("_c")
+# work("_er")
