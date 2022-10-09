@@ -27,7 +27,7 @@ Such as in line 38:
 ```python
 H = Handler(MaxP=31, save_path="res.csv")
 ```
-`MaxP=31` means the maximum number of parallel computing processes are 31
+`MaxP=31` means the maximum number of parallel computing processes is 31
 
 `save_path="res.csv"` means experiment results will be saved in `res.csv` 
 
