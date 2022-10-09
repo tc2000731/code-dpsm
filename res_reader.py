@@ -117,9 +117,9 @@ def work(suf):
         for row in dic_list:
             writer.writerow(row)
 
-# work("_eps")
-# work("_k")
-# work("_l")
-# work("_gamma")
-# work("_c")
-# work("_er")
+work("_eps")
+work("_k")
+work("_l")
+work("_gamma")
+work("_c")
+work("_er")
